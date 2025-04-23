@@ -1,0 +1,142 @@
+version: '3.8'
+
+services:
+  # Development service using hot reloading
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.multi-stage
+      target: development
+    container_name: accounting-dashboard-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://api-dev:3000/api
+      - VITE_APP_ENVIRONMENT=development
+      - VITE_APP_NAME=Simple Accounting Dashboard (DEV)
+      - VITE_APP_VERSION=1.0.0
+      - VITE_FEATURE_DEBUG_TOOLS=true
+      - VITE_FEATURE_ADMIN_PANEL=true
+      - VITE_FEATURE_DARK_MODE=true
+      - VITE_AUTH_REQUIRE_EMAIL_VERIFICATION=false
+      - VITE_AUTH_TOKEN_EXPIRATION=120
+    depends_on:
+      - api-dev
+    networks:
+      - app-network
+    profiles:
+      - dev
+
+  # Staging service
+  app-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile.multi-stage
+      target: staging
+      args:
+        BUILD_ENV: staging
+        VITE_API_URL: http://api-staging:3000/api
+        VITE_APP_ENVIRONMENT: staging
+        VITE_APP_NAME: Simple Accounting Dashboard (STAGING)
+        VITE_APP_VERSION: 1.0.0
+        VITE_FEATURE_DEBUG_TOOLS: 'true'
+    container_name: accounting-dashboard-staging
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_API_URL=http://api-staging:3000/api
+      - VITE_APP_ENVIRONMENT=staging
+      - VITE_APP_NAME=Simple Accounting Dashboard (STAGING)
+      - VITE_APP_VERSION=1.0.0
+      - VITE_FEATURE_DEBUG_TOOLS=true
+      - VITE_ANALYTICS_ENABLED=true
+      - VITE_ANALYTICS_ID=UA-STAGING-ID
+      - VITE_AUTH_REQUIRE_EMAIL_VERIFICATION=true
+      - VITE_AUTH_TOKEN_EXPIRATION=60
+    networks:
+      - app-network
+    profiles:
+      - staging
+
+  # Production service
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile.multi-stage
+      target: production
+      args:
+        BUILD_ENV: production
+        VITE_API_URL: https://api.example.com/api
+        VITE_APP_ENVIRONMENT: production
+        VITE_APP_NAME: Simple Accounting Dashboard
+        VITE_APP_VERSION: 1.0.0
+        VITE_FEATURE_DEBUG_TOOLS: 'false'
+    container_name: accounting-dashboard-prod
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_URL=https://api.example.com/api
+      - VITE_APP_ENVIRONMENT=production
+      - VITE_APP_NAME=Simple Accounting Dashboard
+      - VITE_APP_VERSION=1.0.0
+      - VITE_FEATURE_DEBUG_TOOLS=false
+      - VITE_ANALYTICS_ENABLED=true
+      - VITE_ANALYTICS_ID=UA-PRODUCTION-ID
+      - VITE_AUTH_REQUIRE_EMAIL_VERIFICATION=true
+      - VITE_AUTH_TOKEN_EXPIRATION=30
+    restart: unless-stopped
+    networks:
+      - app-network
+    profiles:
+      - prod
+
+  # Development API server
+  api-dev:
+    image: node:18-alpine
+    container_name: accounting-dashboard-api-dev
+    working_dir: /app
+    volumes:
+      - ./mock-api:/app
+    command: >
+      sh -c "npm install && npm start"
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - JWT_SECRET=your_jwt_secret_key
+      - JWT_EXPIRATION=1h
+      - REFRESH_TOKEN_EXPIRATION=7d
+    networks:
+      - app-network
+    profiles:
+      - dev
+
+  # Staging API server (mock)
+  api-staging:
+    image: node:18-alpine
+    container_name: accounting-dashboard-api-staging
+    working_dir: /app
+    volumes:
+      - ./mock-api:/app
+    command: >
+      sh -c "npm install && npm start"
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=staging
+      - PORT=3000
+      - JWT_SECRET=staging_jwt_secret_key
+      - JWT_EXPIRATION=30m
+      - REFRESH_TOKEN_EXPIRATION=1d
+    networks:
+      - app-network
+    profiles:
+      - staging
+
+networks:
+  app-network:
+    driver: bridge
