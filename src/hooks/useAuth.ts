@@ -26,7 +26,7 @@ export const useAuth = () => {
         if (login.fulfilled.match(resultAction)) {
           return { success: true, user: resultAction.payload.user };
         } else {
-          return { success: false, error: resultAction.payload as string };
+          return { success: false, error: resultAction.error.message || 'Login failed' };
         }
       } catch (error) {
         return { success: false, error: 'Login failed' };

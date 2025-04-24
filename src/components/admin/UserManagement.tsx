@@ -27,81 +27,28 @@ import {
   Grid,
   CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  Tooltip,
+  Switch,
+  FormControlLabel,
+  Divider,
+  Checkbox
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
   Refresh as RefreshIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Upload as UploadIcon,
+  Group as GroupIcon,
+  RotateLeft as ResetIcon,
+  Report as ReportIcon,
+  FileDownload as DownloadIcon,
+  DeleteSweep as DeleteSweepIcon
 } from '@mui/icons-material';
-import { User, UserRole } from '../../types/auth';
-
-// Mock user data for demo purposes
-const mockUsers: User[] = [
-  {
-    _id: '1',
-    username: 'admin',
-    email: 'admin@example.com',
-    role: 'admin',
-    isVerified: true,
-    createdAt: '2023-01-01T00:00:00.000Z',
-    updatedAt: '2023-01-01T00:00:00.000Z',
-    lastLogin: '2023-04-22T10:30:00.000Z',
-    status: 'active'
-  },
-  {
-    _id: '2',
-    username: 'supervisor1',
-    email: 'supervisor@example.com',
-    role: 'supervisor',
-    isVerified: true,
-    createdAt: '2023-02-15T00:00:00.000Z',
-    updatedAt: '2023-02-15T00:00:00.000Z',
-    lastLogin: '2023-04-21T14:45:00.000Z',
-    status: 'active'
-  },
-  {
-    _id: '3',
-    username: 'user1',
-    email: 'user1@example.com',
-    role: 'enduser',
-    isVerified: true,
-    createdAt: '2023-03-10T00:00:00.000Z',
-    updatedAt: '2023-03-10T00:00:00.000Z',
-    lastLogin: '2023-04-20T09:15:00.000Z',
-    status: 'active'
-  },
-  {
-    _id: '4',
-    username: 'user2',
-    email: 'user2@example.com',
-    role: 'enduser',
-    isVerified: false,
-    createdAt: '2023-04-01T00:00:00.000Z',
-    updatedAt: '2023-04-01T00:00:00.000Z',
-    status: 'inactive'
-  },
-  {
-    _id: '5',
-    username: 'user3',
-    email: 'user3@example.com',
-    role: 'enduser',
-    isVerified: true,
-    createdAt: '2023-04-15T00:00:00.000Z',
-    updatedAt: '2023-04-15T00:00:00.000Z',
-    lastLogin: '2023-04-18T11:20:00.000Z',
-    status: 'suspended'
-  }
-];
-
-interface UserFormData {
-  username: string;
-  email: string;
-  role: UserRole;
-  status: 'active' | 'inactive' | 'suspended';
-}
+import { User, UserRole, UserFormData, BatchUserData } from '../../types/auth';
+import adminService from '../../services/adminService';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -112,34 +59,49 @@ const UserManagement: React.FC = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [formData, setFormData] = useState<UserFormData>({
+  const [openBatchDialog, setOpenBatchDialog] = useState(false);
+  const [openReportsDialog, setOpenReportsDialog] = useState(false);
+  const [openBulkDeleteDialog, setOpenBulkDeleteDialog] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [selectAllUsers, setSelectAllUsers] = useState(false);
+  const [formData, setFormData] = useState<UserFormData & { password?: string; skipVerification?: boolean }>({
     username: '',
     email: '',
     role: 'enduser',
     status: 'active'
   });
+  const [batchUsers, setBatchUsers] = useState<BatchUserData[]>([]);
+  const [batchUserString, setBatchUserString] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [reportType, setReportType] = useState('users');
+  const [reportFormat, setReportFormat] = useState<'pdf' | 'csv' | 'excel'>('pdf');
+  const [reportDateRange, setReportDateRange] = useState<{
+    startDate: string | null;
+    endDate: string | null;
+  }>({
+    startDate: null,
+    endDate: null
+  });
   const [notification, setNotification] = useState<{
     open: boolean;
     message: string;
     severity: 'success' | 'error' | 'info' | 'warning';
-  }>({
+  }>( {
     open: false,
     message: '',
     severity: 'success'
   });
 
   useEffect(() => {
-    // Simulate fetching users from API
+    // Fetch users from API
     const fetchUsers = async () => {
+      setLoading(true);
       try {
-        // In a real app, this would be an API call
-        setTimeout(() => {
-          setUsers(mockUsers);
-          setLoading(false);
-        }, 1000);
-      } catch (error) {
-        console.error('Error fetching users:', error);
+        const data = await adminService.getAllUsers();
+        setUsers(data);
+      } catch (error: any) {
+        showNotification(error.message || 'Error fetching users', 'error');
+      } finally {
         setLoading(false);
       }
     };
@@ -148,13 +110,15 @@ const UserManagement: React.FC = () => {
   }, []);
 
   // Filter users based on search query
-  const filteredUsers = users.filter(user => 
-    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = Array.isArray(users) 
+    ? users.filter(user => 
+        user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.role.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
@@ -189,6 +153,16 @@ const UserManagement: React.FC = () => {
     setOpenAddDialog(true);
   };
 
+  const handleBatchUserUpdate = () => {
+    setOpenBatchDialog(true);
+    setBatchUserString('');
+    setBatchUsers([]);
+    setFormData(prev => ({
+      ...prev,
+      skipVerification: true
+    }));
+  };
+
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value } = e.target;
     setFormData({
@@ -197,50 +171,225 @@ const UserManagement: React.FC = () => {
     });
   };
 
-  const handleSaveEdit = () => {
-    if (selectedUser) {
-      // In a real app, this would be an API call
-      const updatedUsers = users.map(user => 
-        user._id === selectedUser._id ? { ...user, ...formData } : user
-      );
-      setUsers(updatedUsers);
-      setOpenEditDialog(false);
-      showNotification('User updated successfully', 'success');
+  const handleBatchTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBatchUserString(e.target.value);
+    try {
+      // Parse the textarea content as CSV or JSON
+      const lines = e.target.value.trim().split('\n');
+      const parsedUsers: BatchUserData[] = [];
+      
+      lines.forEach(line => {
+        if (line.trim()) {
+          // Assume CSV format: username,email,role
+          const parts = line.split(',').map(part => part.trim());
+          if (parts.length >= 2) {
+            parsedUsers.push({
+              username: parts[0],
+              email: parts[1],
+              role: (parts[2] as UserRole) || 'enduser'
+            });
+          }
+        }
+      });
+      
+      setBatchUsers(parsedUsers);
+    } catch (error) {
+      console.error('Error parsing batch user data:', error);
     }
   };
 
-  const handleConfirmDelete = () => {
+  const handleSaveEdit = async () => {
     if (selectedUser) {
-      // In a real app, this would be an API call
-      const updatedUsers = users.filter(user => user._id !== selectedUser._id);
-      setUsers(updatedUsers);
-      setOpenDeleteDialog(false);
-      showNotification('User deleted successfully', 'success');
+      setLoading(true);
+      try {
+        await adminService.updateUser(selectedUser._id, formData);
+        // Refresh the user list
+        const updatedUsers = await adminService.getAllUsers();
+        setUsers(updatedUsers);
+        setOpenEditDialog(false);
+        showNotification('User updated successfully', 'success');
+      } catch (error: any) {
+        showNotification(error.message || 'Error updating user', 'error');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleAddNewUser = () => {
-    // In a real app, this would be an API call
-    const newUser: User = {
-      _id: `${users.length + 1}`,
-      username: formData.username,
-      email: formData.email,
-      role: formData.role,
-      isVerified: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: formData.status
-    };
+  const handleConfirmDelete = async () => {
+    if (selectedUser) {
+      setLoading(true);
+      try {
+        await adminService.deleteUser(selectedUser._id);
+        // Refresh the user list
+        const updatedUsers = await adminService.getAllUsers();
+        setUsers(updatedUsers);
+        setOpenDeleteDialog(false);
+        showNotification('User deleted successfully', 'success');
+      } catch (error: any) {
+        showNotification(error.message || 'Error deleting user', 'error');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleAddNewUser = async () => {
+    setLoading(true);
+    try {
+      // Generate a random password for the new user (if not provided)
+      const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).toUpperCase().slice(-4);
+      
+      // Create the user data object with all required fields
+      const userData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password || randomPassword,
+        role: formData.role,
+        status: formData.status, // Include status as it's required in UserFormData
+        skipVerification: formData.skipVerification || false
+      };
+      
+      await adminService.createUser(userData);
+      // Refresh the user list
+      const updatedUsers = await adminService.getAllUsers();
+      setUsers(updatedUsers);
+      setOpenAddDialog(false);
+      showNotification('User added successfully', 'success');
+    } catch (error: any) {
+      showNotification(error.message || 'Error adding user', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddBatchUsers = async () => {
+    if (batchUsers.length === 0) {
+      showNotification('No valid users to add', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await adminService.addBatchUsers(batchUsers, formData.skipVerification ?? false);
+      // Refresh the user list
+      const updatedUsers = await adminService.getAllUsers();
+      setUsers(updatedUsers);
+      setOpenBatchDialog(false);
+      showNotification(`${batchUsers.length} users added successfully`, 'success');
+    } catch (error: any) {
+      showNotification(error.message || 'Error adding batch users', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // New handlers for bulk delete functionality
+  const handleToggleSelectUser = (userId: string) => {
+    setSelectedUserIds(prev => {
+      if (prev.includes(userId)) {
+        return prev.filter(id => id !== userId);
+      } else {
+        return [...prev, userId];
+      }
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    const newSelectAll = !selectAllUsers;
+    setSelectAllUsers(newSelectAll);
     
-    setUsers([...users, newUser]);
-    setOpenAddDialog(false);
-    showNotification('User added successfully', 'success');
+    if (newSelectAll) {
+      // Select all filtered users
+      setSelectedUserIds(filteredUsers.map(user => user._id));
+    } else {
+      // Deselect all
+      setSelectedUserIds([]);
+    }
+  };
+
+  const handleOpenBulkDeleteDialog = () => {
+    if (selectedUserIds.length === 0) {
+      showNotification('No users selected for deletion', 'warning');
+      return;
+    }
+    setOpenBulkDeleteDialog(true);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedUserIds.length === 0) return;
+    
+    setLoading(true);
+    try {
+      await adminService.deleteUsers(selectedUserIds);
+      // Refresh the user list
+      const updatedUsers = await adminService.getAllUsers();
+      setUsers(updatedUsers);
+      setSelectedUserIds([]);
+      setSelectAllUsers(false);
+      setOpenBulkDeleteDialog(false);
+      showNotification(`${selectedUserIds.length} users deleted successfully`, 'success');
+    } catch (error: any) {
+      showNotification(error.message || 'Error deleting users', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reports functionality
+  const handleOpenReportsDialog = () => {
+    setOpenReportsDialog(true);
+    setReportType('users');
+    setReportFormat('pdf');
+    setReportDateRange({
+      startDate: null,
+      endDate: null
+    });
+  };
+
+  const handleCloseReportsDialog = () => {
+    setOpenReportsDialog(false);
+  };
+
+  const handleGenerateReport = async () => {
+    setLoading(true);
+    try {
+      const startDate = reportDateRange.startDate;
+      const endDate = reportDateRange.endDate;
+      
+      const blob = await adminService.downloadReport(
+        reportType,
+        reportFormat,
+        startDate || undefined,
+        endDate || undefined
+      );
+      
+      // Create a download link and trigger the download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${reportType}-report-${new Date().toISOString().split('T')[0]}.${reportFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      showNotification('Report generated successfully', 'success');
+      setOpenReportsDialog(false);
+    } catch (error: any) {
+      showNotification(error.message || 'Error generating report', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCloseDialogs = () => {
     setOpenEditDialog(false);
     setOpenDeleteDialog(false);
     setOpenAddDialog(false);
+    setOpenBatchDialog(false);
+    setOpenBulkDeleteDialog(false);
+    setOpenReportsDialog(false);
   };
 
   const showNotification = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
@@ -258,14 +407,26 @@ const UserManagement: React.FC = () => {
     });
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setLoading(true);
-    // Simulate refreshing users from API
-    setTimeout(() => {
-      setUsers(mockUsers);
+    try {
+      const data = await adminService.getAllUsers();
+      setUsers(data);
+      showNotification('Users refreshed', 'success');
+    } catch (error: any) {
+      showNotification(error.message || 'Error refreshing users', 'error');
+    } finally {
       setLoading(false);
-      showNotification('Users refreshed', 'info');
-    }, 1000);
+    }
+  };
+
+  const handleResetPassword = async (userId: string) => {
+    try {
+      await adminService.resetUserPassword(userId);
+      showNotification('Password reset email sent to user', 'success');
+    } catch (error: any) {
+      showNotification(error.message || 'Error resetting password', 'error');
+    }
   };
 
   return (
@@ -301,13 +462,35 @@ const UserManagement: React.FC = () => {
               Refresh
             </Button>
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAddUser}
-          >
-            Add User
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Tooltip title="Generate user reports">
+              <Button
+                variant="outlined"
+                color="info"
+                startIcon={<ReportIcon />}
+                onClick={handleOpenReportsDialog}
+              >
+                Reports
+              </Button>
+            </Tooltip>
+            <Tooltip title="Add multiple users at once">
+              <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<GroupIcon />}
+                onClick={handleBatchUserUpdate}
+              >
+                Batch Add
+              </Button>
+            </Tooltip>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddUser}
+            >
+              Add User
+            </Button>
+          </Box>
         </Box>
 
         {loading ? (
@@ -316,10 +499,32 @@ const UserManagement: React.FC = () => {
           </Box>
         ) : (
           <>
+            {selectedUserIds.length > 0 && (
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle2">
+                  {selectedUserIds.length} users selected
+                </Typography>
+                <Button 
+                  variant="outlined" 
+                  color="error" 
+                  startIcon={<DeleteSweepIcon />}
+                  onClick={handleOpenBulkDeleteDialog}
+                >
+                  Delete Selected
+                </Button>
+              </Box>
+            )}
             <TableContainer>
               <Table sx={{ minWidth: 650 }}>
                 <TableHead>
                   <TableRow>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        indeterminate={selectedUserIds.length > 0 && selectedUserIds.length < filteredUsers.length}
+                        checked={selectAllUsers}
+                        onChange={handleToggleSelectAll}
+                      />
+                    </TableCell>
                     <TableCell>Username</TableCell>
                     <TableCell>Email</TableCell>
                     <TableCell>Role</TableCell>
@@ -334,6 +539,12 @@ const UserManagement: React.FC = () => {
                     .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map((user) => (
                       <TableRow key={user._id}>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selectedUserIds.includes(user._id)}
+                            onChange={() => handleToggleSelectUser(user._id)}
+                          />
+                        </TableCell>
                         <TableCell component="th" scope="row">
                           {user.username}
                         </TableCell>
@@ -365,12 +576,21 @@ const UserManagement: React.FC = () => {
                           {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                         </TableCell>
                         <TableCell>
-                          <IconButton size="small" onClick={() => handleEdit(user)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => handleDelete(user)}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
+                          <Tooltip title="Edit User">
+                            <IconButton size="small" onClick={() => handleEdit(user)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete User">
+                            <IconButton size="small" onClick={() => handleDelete(user)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Reset Password">
+                            <IconButton size="small" onClick={() => handleResetPassword(user._id)}>
+                              <ResetIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -404,7 +624,7 @@ const UserManagement: React.FC = () => {
         <DialogTitle>Edit User</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ pt: 1 }}>
-            <Grid item xs={12}>
+            <Grid component="div" sx={{ gridColumn: "span 12" }}>
               <TextField
                 fullWidth
                 label="Username"
@@ -413,7 +633,7 @@ const UserManagement: React.FC = () => {
                 onChange={handleFormChange}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid component="div" sx={{ gridColumn: "span 12" }}>
               <TextField
                 fullWidth
                 label="Email"
@@ -422,14 +642,19 @@ const UserManagement: React.FC = () => {
                 onChange={handleFormChange}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid component="div" sx={{ gridColumn: { xs: "span 12", sm: "span 6" } }}>
               <FormControl fullWidth>
                 <InputLabel>Role</InputLabel>
                 <Select
                   name="role"
                   value={formData.role}
-                  onChange={handleFormChange}
                   label="Role"
+                  onChange={(event) => {
+                    setFormData({
+                      ...formData,
+                      role: event.target.value as UserRole
+                    });
+                  }}
                 >
                   <MenuItem value="admin">Admin</MenuItem>
                   <MenuItem value="supervisor">Supervisor</MenuItem>
@@ -437,14 +662,19 @@ const UserManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid component="div" sx={{ gridColumn: { xs: "span 12", sm: "span 6" } }}>
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
                 <Select
                   name="status"
                   value={formData.status}
-                  onChange={handleFormChange}
                   label="Status"
+                  onChange={(event) => {
+                    setFormData({
+                      ...formData,
+                      status: event.target.value as 'active' | 'inactive' | 'suspended'
+                    });
+                  }}
                 >
                   <MenuItem value="active">Active</MenuItem>
                   <MenuItem value="inactive">Inactive</MenuItem>
@@ -479,7 +709,7 @@ const UserManagement: React.FC = () => {
         <DialogTitle>Add New User</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ pt: 1 }}>
-            <Grid item xs={12}>
+            <Grid component="div" sx={{ gridColumn: "span 12" }}>
               <TextField
                 fullWidth
                 label="Username"
@@ -489,7 +719,7 @@ const UserManagement: React.FC = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid component="div" sx={{ gridColumn: "span 12" }}>
               <TextField
                 fullWidth
                 label="Email"
@@ -499,13 +729,18 @@ const UserManagement: React.FC = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid component="div" sx={{ gridColumn: { xs: "span 12", sm: "span 6" } }}>
               <FormControl fullWidth required>
                 <InputLabel>Role</InputLabel>
                 <Select
                   name="role"
                   value={formData.role}
-                  onChange={handleFormChange}
+                  onChange={(event) => {
+                    setFormData({
+                      ...formData,
+                      role: event.target.value as UserRole
+                    });
+                  }}
                   label="Role"
                 >
                   <MenuItem value="admin">Admin</MenuItem>
@@ -514,13 +749,18 @@ const UserManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid component="div" sx={{ gridColumn: { xs: "span 12", sm: "span 6" } }}>
               <FormControl fullWidth required>
                 <InputLabel>Status</InputLabel>
                 <Select
                   name="status"
                   value={formData.status}
-                  onChange={handleFormChange}
+                  onChange={(event) => {
+                    setFormData({
+                      ...formData,
+                      status: event.target.value as 'active' | 'inactive' | 'suspended'
+                    });
+                  }}
                   label="Status"
                 >
                   <MenuItem value="active">Active</MenuItem>
@@ -543,6 +783,100 @@ const UserManagement: React.FC = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Batch Update Users Dialog */}
+      <Dialog 
+        open={openBatchDialog} 
+        onClose={handleCloseDialogs}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Batch Update Users</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Enter multiple users in CSV format (one per line): username, email, role(optional)
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Example: 
+              <br />
+              john_doe, john@example.com, enduser
+              <br />
+              jane_smith, jane@example.com, supervisor
+            </Typography>
+          </Box>
+          
+          <TextField
+            fullWidth
+            multiline
+            rows={8}
+            variant="outlined"
+            placeholder="username, email, role"
+            value={batchUserString}
+            onChange={handleBatchTextChange}
+            sx={{ mb: 3 }}
+          />
+          
+          <FormControlLabel
+            control={
+              <Switch
+                checked={formData.skipVerification}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  skipVerification: e.target.checked
+                }))}
+              />
+            }
+            label="Skip email verification"
+          />
+          
+          <Divider sx={{ my: 3 }} />
+          
+          <Typography variant="subtitle1" gutterBottom>
+            Users to add: {batchUsers.length}
+          </Typography>
+          
+          {batchUsers.length > 0 && (
+            <TableContainer sx={{ maxHeight: 200 }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Username</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Role</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {batchUsers.map((user, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{user.username}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.role || 'enduser'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+          
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Note: Passwords will be auto-generated and emailed directly to users.
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialogs}>Cancel</Button>
+          <Button 
+            onClick={handleAddBatchUsers} 
+            variant="contained"
+            disabled={batchUsers.length === 0 || loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <UploadIcon />}
+          >
+            Upload {batchUsers.length} Users
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Notification Snackbar */}
       <Snackbar
         open={notification.open}
@@ -557,6 +891,102 @@ const UserManagement: React.FC = () => {
           {notification.message}
         </Alert>
       </Snackbar>
+
+      {/* Bulk Delete Dialog */}
+      <Dialog open={openBulkDeleteDialog} onClose={handleCloseDialogs}>
+        <DialogTitle>Bulk Delete Users</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete {selectedUserIds.length} selected users? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialogs}>Cancel</Button>
+          <Button onClick={handleBulkDelete} color="error" variant="contained">Delete All Selected</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Reports Dialog */}
+      <Dialog
+        open={openReportsDialog}
+        onClose={handleCloseReportsDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Generate Reports</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: '1fr', mt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel>Report Type</InputLabel>
+              <Select
+                value={reportType}
+                label="Report Type"
+                onChange={(e) => setReportType(e.target.value)}
+              >
+                <MenuItem value="users">User List</MenuItem>
+                <MenuItem value="user-activity">User Activity</MenuItem>
+                <MenuItem value="login-history">Login History</MenuItem>
+                <MenuItem value="user-roles">User Roles Summary</MenuItem>
+                <MenuItem value="status-summary">User Status Summary</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>Format</InputLabel>
+              <Select
+                value={reportFormat}
+                label="Format"
+                onChange={(e) => setReportFormat(e.target.value as 'pdf' | 'csv' | 'excel')}
+              >
+                <MenuItem value="pdf">PDF</MenuItem>
+                <MenuItem value="csv">CSV</MenuItem>
+                <MenuItem value="excel">Excel</MenuItem>
+              </Select>
+            </FormControl>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+              <TextField
+                label="Start Date"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={reportDateRange.startDate || ''}
+                onChange={(e) => setReportDateRange({
+                  ...reportDateRange,
+                  startDate: e.target.value
+                })}
+              />
+
+              <TextField
+                label="End Date"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={reportDateRange.endDate || ''}
+                onChange={(e) => setReportDateRange({
+                  ...reportDateRange,
+                  endDate: e.target.value
+                })}
+              />
+            </Box>
+
+            <Typography variant="body2" color="text.secondary">
+              Note: Date range is optional. If not specified, all data will be included in the report.
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseReportsDialog}>Cancel</Button>
+          <Button
+            onClick={handleGenerateReport}
+            variant="contained"
+            startIcon={loading ? <CircularProgress size={20} /> : <DownloadIcon />}
+            disabled={loading}
+          >
+            Generate Report
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

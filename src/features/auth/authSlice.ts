@@ -39,6 +39,54 @@ export const logout = createAsyncThunk(
   }
 );
 
+export const logoutAllDevices = createAsyncThunk(
+  'auth/logoutAllDevices',
+  async (_, { rejectWithValue }) => {
+    try {
+      await authService.logoutFromAllDevices();
+      return null;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Logout from all devices failed');
+    }
+  }
+);
+
+export const verifyEmail = createAsyncThunk(
+  'auth/verifyEmail',
+  async (token: string, { rejectWithValue }) => {
+    try {
+      const response = await authService.verifyEmail(token);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Email verification failed');
+    }
+  }
+);
+
+export const resendVerification = createAsyncThunk(
+  'auth/resendVerification',
+  async (email: string, { rejectWithValue }) => {
+    try {
+      const response = await authService.resendVerificationCode(email);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to resend verification code');
+    }
+  }
+);
+
+export const updateUserProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (userData: Partial<User>, { rejectWithValue }) => {
+    try {
+      const response = await authService.updateProfile(userData);
+      return response.user;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Profile update failed');
+    }
+  }
+);
+
 export const getCurrentUser = createAsyncThunk(
   'auth/getCurrentUser',
   async (_, { rejectWithValue }) => {
@@ -128,6 +176,69 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.user = null;
         state.accessToken = null;
+      });
+
+    // Logout from all devices cases
+    builder
+      .addCase(logoutAllDevices.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(logoutAllDevices.fulfilled, (state) => {
+        state.loading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.accessToken = null;
+      })
+      .addCase(logoutAllDevices.rejected, (state) => {
+        state.loading = false;
+        // Even if API logout fails, we clear the state
+        state.isAuthenticated = false;
+        state.user = null;
+        state.accessToken = null;
+      });
+
+    // Email verification cases
+    builder
+      .addCase(verifyEmail.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(verifyEmail.fulfilled, (state) => {
+        state.loading = false;
+        // User will need to login after verification
+      })
+      .addCase(verifyEmail.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // Resend verification cases
+    builder
+      .addCase(resendVerification.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resendVerification.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(resendVerification.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // Update profile cases
+    builder
+      .addCase(updateUserProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUserProfile.fulfilled, (state, action: PayloadAction<User>) => {
+        state.loading = false;
+        state.user = action.payload;
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
 
     // Get current user cases

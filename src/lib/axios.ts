@@ -3,9 +3,19 @@ import { store } from '../store';
 import authService from '../services/authService';
 import { logout, setAuthError } from '../features/auth/authSlice';
 
+// Helper function to safely get environment variables in both Vite and Jest environments
+const getEnvVar = (key: string, defaultValue: string): string => {
+  // Check if we're in a test environment
+  if (process.env.NODE_ENV === 'test') {
+    return defaultValue;
+  }
+  // Otherwise use Vite's import.meta.env
+  return (import.meta.env as any)[key] || defaultValue;
+};
+
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: getEnvVar('VITE_API_URL', 'http://localhost:3000/api'),
   headers: {
     'Content-Type': 'application/json'
   },

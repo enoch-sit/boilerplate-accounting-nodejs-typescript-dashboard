@@ -402,11 +402,12 @@ const Register: React.FC = () => {
             
             {activeStep !== 3 && (
               <Grid container justifyContent="flex-end" sx={{ mt: 2 }}>
-                <Grid item>
+                {/* <Grid item> */}
+                
                   <Link component={RouterLink} to="/login" variant="body2">
                     Already have an account? Sign in
                   </Link>
-                </Grid>
+                
               </Grid>
             )}
           </Box>

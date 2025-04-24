@@ -1,13 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import Register from '../../../components/auth/Register';
+import { type UserRegistrationData } from '../../../types/auth';
 
 // Mock the authService
-vi.mock('../../../services/authService', () => ({
-  register: vi.fn().mockImplementation((userData) => {
+jest.mock('../../../services/authService', () => ({
+  register: jest.fn().mockImplementation((userData: any) => {
     if (userData.email === 'test@example.com') {
       return Promise.resolve({ user: { email: 'test@example.com', username: 'testuser' } });
     } else {
@@ -17,11 +20,11 @@ vi.mock('../../../services/authService', () => ({
 }));
 
 // Mock useNavigate
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+jest.mock('react-router-dom', async () => {
+  const actual = await jest.requireActual('react-router-dom') as object;
   return {
     ...actual,
-    useNavigate: () => vi.fn()
+    useNavigate: () => jest.fn()
   };
 });
 
@@ -37,7 +40,7 @@ describe('Register Component', () => {
   });
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('renders registration form correctly', () => {

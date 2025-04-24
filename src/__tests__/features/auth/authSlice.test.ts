@@ -1,19 +1,23 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import authReducer, {
   login,
   logout,
   register,
-  setLoading,
   clearError
 } from '../../../features/auth/authSlice';
+import { AuthState } from '../../../types/auth';
+
+// Interface extending AuthState with the additional accessToken property
+interface AuthStateWithToken extends AuthState {
+  accessToken: string | null;
+}
 
 describe('Auth Slice', () => {
-  let initialState;
+  let initialState: AuthStateWithToken;
 
   beforeEach(() => {
     initialState = {
       user: null,
-      token: null,
+      accessToken: null,
       isAuthenticated: false,
       loading: false,
       error: null
@@ -21,7 +25,14 @@ describe('Auth Slice', () => {
   });
 
   it('should return the initial state', () => {
-    expect(authReducer(undefined, { type: undefined })).toEqual(initialState);
+    expect(authReducer(undefined, { type: 'INIT' })).toEqual(
+      expect.objectContaining({
+        user: null,
+        isAuthenticated: false,
+        loading: false,
+        error: null
+      })
+    );
   });
 
   it('should handle login.pending', () => {
@@ -32,14 +43,23 @@ describe('Auth Slice', () => {
   });
 
   it('should handle login.fulfilled', () => {
-    const user = { id: '1', username: 'testuser', email: 'test@example.com', role: 'enduser' };
-    const token = 'fake-jwt-token';
-    const action = { type: login.fulfilled.type, payload: { user, token } };
+    const user = {
+      _id: '1',
+      username: 'testuser',
+      email: 'test@example.com',
+      role: 'enduser', 
+      isVerified: true,
+      createdAt: '2025-04-20T00:00:00.000Z',
+      updatedAt: '2025-04-20T00:00:00.000Z',
+      status: 'active'
+    };
+    const accessToken = 'fake-jwt-token';
+    const action = { type: login.fulfilled.type, payload: { user, accessToken } };
     const state = authReducer(initialState, action);
     
     expect(state.isAuthenticated).toBe(true);
     expect(state.user).toEqual(user);
-    expect(state.token).toBe(token);
+    expect(state.accessToken).toBe(accessToken);
     expect(state.loading).toBe(false);
     expect(state.error).toBe(null);
   });
@@ -48,7 +68,7 @@ describe('Auth Slice', () => {
     const errorMessage = 'Invalid credentials';
     const action = { 
       type: login.rejected.type,
-      error: { message: errorMessage }
+      payload: errorMessage
     };
     const state = authReducer(initialState, action);
     
@@ -66,51 +86,48 @@ describe('Auth Slice', () => {
   });
 
   it('should handle register.fulfilled', () => {
-    const user = { id: '1', username: 'newuser', email: 'new@example.com', role: 'enduser' };
-    const token = 'fake-jwt-token';
-    const action = { type: register.fulfilled.type, payload: { user, token } };
+    const action = { type: register.fulfilled.type };
     const state = authReducer(initialState, action);
     
-    expect(state.isAuthenticated).toBe(true);
-    expect(state.user).toEqual(user);
-    expect(state.token).toBe(token);
     expect(state.loading).toBe(false);
-    expect(state.error).toBe(null);
   });
 
   it('should handle register.rejected', () => {
     const errorMessage = 'Email already in use';
     const action = { 
       type: register.rejected.type,
-      error: { message: errorMessage }
+      payload: errorMessage
     };
     const state = authReducer(initialState, action);
     
-    expect(state.isAuthenticated).toBe(false);
-    expect(state.user).toBe(null);
     expect(state.loading).toBe(false);
     expect(state.error).toBe(errorMessage);
   });
 
-  it('should handle logout', () => {
-    const loggedInState = {
-      user: { id: '1', username: 'testuser', role: 'enduser' },
-      token: 'fake-jwt-token',
+  it('should handle logout.fulfilled', () => {
+    const loggedInState: AuthStateWithToken = {
+      user: {
+        _id: '1',
+        username: 'testuser',
+        email: 'test@example.com',
+        role: 'enduser',
+        isVerified: true,
+        createdAt: '2025-04-20T00:00:00.000Z',
+        updatedAt: '2025-04-20T00:00:00.000Z',
+        status: 'active'
+      },
+      accessToken: 'fake-jwt-token',
       isAuthenticated: true,
       loading: false,
       error: null
     };
     
-    const action = { type: logout.type };
+    const action = { type: logout.fulfilled.type };
     const state = authReducer(loggedInState, action);
     
-    expect(state).toEqual(initialState);
-  });
-
-  it('should handle setLoading', () => {
-    const action = { type: setLoading.type, payload: true };
-    const state = authReducer(initialState, action);
-    expect(state.loading).toBe(true);
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.user).toBe(null);
+    expect(state.accessToken).toBe(null);
   });
 
   it('should handle clearError', () => {

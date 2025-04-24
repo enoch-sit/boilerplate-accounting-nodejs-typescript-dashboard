@@ -1,25 +1,27 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import Dashboard from '../../../components/dashboard/Dashboard';
 
 // Mock any dependencies
-vi.mock('../../../hooks/useAuth', () => ({
-  useAuth: vi.fn()
+jest.mock('../../../hooks/useAuth', () => ({
+  useAuth: jest.fn()
 }));
 
-vi.mock('../../../services/authService', () => ({
-  getAuthToken: vi.fn()
+jest.mock('../../../services/authService', () => ({
+  getAuthToken: jest.fn()
 }));
 
 // Mock axios
-vi.mock('axios', () => ({
-  get: vi.fn(),
+jest.mock('axios', () => ({
+  get: jest.fn(),
   interceptors: {
-    request: { use: vi.fn(), eject: vi.fn() },
-    response: { use: vi.fn(), eject: vi.fn() }
+    request: { use: jest.fn(), eject: jest.fn() },
+    response: { use: jest.fn(), eject: jest.fn() }
   },
   defaults: {
     headers: {
@@ -33,7 +35,7 @@ describe('Dashboard Component', () => {
   let store;
   
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     
     // Setup store with different user roles for testing
     store = mockStore({
@@ -179,7 +181,7 @@ describe('Dashboard Component', () => {
     );
     
     // Assert the API was called with the correct endpoint
-    expect(axios.get).toHaveBeenCalledWith('/api/protected/dashboard');
+    expect(axios.get).toHaveBeenCalledWith('/api/dashboard');
     
     // Wait for data to be loaded
     await waitFor(() => {

@@ -17,7 +17,12 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -25,9 +30,14 @@ import {
   Email as EmailIcon,
   CalendarToday as CalendarIcon,
   AccessTime as TimeIcon,
-  Security as SecurityIcon
+  Security as SecurityIcon,
+  Logout as LogoutIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../../store';
+import { updateUserProfile, logoutAllDevices } from '../../features/auth/authSlice';
 import authService from '../../services/authService';
 
 interface ProfileData {
@@ -68,6 +78,11 @@ const Profile: React.FC = () => {
     message: '',
     severity: 'success'
   });
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [logoutAllLoading, setLogoutAllLoading] = useState(false);
+  
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
 
   // Simulate fetching profile data
   useEffect(() => {
@@ -78,9 +93,9 @@ const Profile: React.FC = () => {
       setTimeout(() => {
         setProfileData({
           ...defaultProfileData,
-          displayName: user.username,
-          firstName: user.username.split(' ')[0] || '',
-          lastName: user.username.split(' ')[1] || ''
+          displayName: user.username || '',
+          firstName: user.username ? user.username.split(' ')[0] || '' : '',
+          lastName: user.username ? user.username.split(' ')[1] || '' : ''
         });
         setLoading(false);
       }, 800);
@@ -110,12 +125,36 @@ const Profile: React.FC = () => {
   const handleSaveProfile = async () => {
     setSaveLoading(true);
     
-    // In a real app, you would send the profile data to an API
-    // For now, we'll simulate a delay and success
-    setTimeout(() => {
-      setSaveLoading(false);
+    try {
+      // Prepare the user data for update
+      const userData = {
+        username: user?._id ? user.username : '', // Keep existing username
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        displayName: profileData.displayName,
+        // Add other fields as needed by your API
+      };
+      
+      await dispatch(updateUserProfile(userData)).unwrap();
       showNotification('Profile updated successfully', 'success');
-    }, 1000);
+    } catch (error: any) {
+      showNotification(error.toString() || 'Failed to update profile', 'error');
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  const handleLogoutAllDevices = async () => {
+    setLogoutAllLoading(true);
+    try {
+      await dispatch(logoutAllDevices()).unwrap();
+      // The user will be logged out from the current device too, so redirect to login
+      navigate('/login');
+    } catch (error: any) {
+      setLogoutDialogOpen(false);
+      showNotification(error.toString() || 'Failed to logout from all devices', 'error');
+      setLogoutAllLoading(false);
+    }
   };
 
   const showNotification = (message: string, severity: 'success' | 'error' | 'info' | 'warning') => {
@@ -154,7 +193,7 @@ const Profile: React.FC = () => {
 
       <Grid container spacing={4}>
         {/* Profile Summary Card */}
-        <Grid item xs={12} md={4}>
+        <Grid component="div" sx={{ gridColumn: { xs: "span 12", md: "span 4" } }}>
           <Card elevation={3}>
             <CardContent sx={{ textAlign: 'center', py: 4 }}>
               <Avatar
@@ -165,7 +204,7 @@ const Profile: React.FC = () => {
                   bgcolor: 'primary.main'
                 }}
               >
-                {user?.username.charAt(0).toUpperCase() || 'U'}
+                {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
               </Avatar>
               
               <Typography variant="h5" gutterBottom>
@@ -239,16 +278,27 @@ const Profile: React.FC = () => {
                 color="primary"
                 fullWidth
                 sx={{ mt: 2 }}
-                onClick={() => showNotification('Security settings can be accessed in the Settings section', 'info')}
+                onClick={() => navigate('/settings')}
               >
                 Security Settings
+              </Button>
+              
+              <Button
+                variant="outlined"
+                color="error"
+                fullWidth
+                sx={{ mt: 2 }}
+                startIcon={<LogoutIcon />}
+                onClick={() => setLogoutDialogOpen(true)}
+              >
+                Logout From All Devices
               </Button>
             </CardContent>
           </Card>
         </Grid>
         
         {/* Profile Edit Form */}
-        <Grid item xs={12} md={8}>
+        <Grid component="div" sx={{ gridColumn: { xs: "span 12", md: "span 8" } }}>
           <Paper elevation={3} sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Personal Information
@@ -256,7 +306,7 @@ const Profile: React.FC = () => {
             <Divider sx={{ mb: 3 }} />
             
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              <Grid component="div" sx={{ gridColumn: { xs: "span 12", sm: "span 6" } }}>
                 <TextField
                   fullWidth
                   label="First Name"
@@ -267,7 +317,7 @@ const Profile: React.FC = () => {
                 />
               </Grid>
               
-              <Grid item xs={12} sm={6}>
+              <Grid component="div" sx={{ gridColumn: { xs: "span 12", sm: "span 6" } }}>
                 <TextField
                   fullWidth
                   label="Last Name"
@@ -278,7 +328,7 @@ const Profile: React.FC = () => {
                 />
               </Grid>
               
-              <Grid item xs={12}>
+              <Grid component="div" sx={{ gridColumn: { xs: "span 12" } }}>
                 <TextField
                   fullWidth
                   label="Display Name"
@@ -290,7 +340,7 @@ const Profile: React.FC = () => {
                 />
               </Grid>
               
-              <Grid item xs={12}>
+              <Grid component="div" sx={{ gridColumn: { xs: "span 12" } }}>
                 <TextField
                   fullWidth
                   label="Bio"
@@ -311,7 +361,7 @@ const Profile: React.FC = () => {
             <Divider sx={{ mb: 3 }} />
             
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              <Grid component="div" sx={{ gridColumn: { xs: "span 12", sm: "span 6" } }}>
                 <TextField
                   fullWidth
                   label="Phone Number"
@@ -322,7 +372,7 @@ const Profile: React.FC = () => {
                 />
               </Grid>
               
-              <Grid item xs={12} sm={6}>
+              <Grid component="div" sx={{ gridColumn: { xs: "span 12", sm: "span 6" } }}>
                 <TextField
                   fullWidth
                   label="Alternative Email"
@@ -334,7 +384,7 @@ const Profile: React.FC = () => {
                 />
               </Grid>
               
-              <Grid item xs={12}>
+              <Grid component="div" sx={{ gridColumn: { xs: "span 12" } }}>
                 <TextField
                   fullWidth
                   label="Address"
@@ -362,6 +412,35 @@ const Profile: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Logout from all devices dialog */}
+      <Dialog
+        open={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
+      >
+        <DialogTitle>Logout from all devices?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will terminate all active sessions across all your devices. You will need to log in again on each device.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setLogoutDialogOpen(false)} 
+            disabled={logoutAllLoading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleLogoutAllDevices} 
+            color="error" 
+            disabled={logoutAllLoading}
+            autoFocus
+          >
+            {logoutAllLoading ? <CircularProgress size={24} /> : 'Logout All Devices'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Notification Snackbar */}
       <Snackbar

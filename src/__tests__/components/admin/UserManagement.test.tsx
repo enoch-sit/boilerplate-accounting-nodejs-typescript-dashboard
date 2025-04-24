@@ -1,19 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom'; // Import jest-dom for the custom matchers
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import UserManagement from '../../../components/admin/UserManagement';
 
+// Create a helper function to avoid the TS errors with toBeInTheDocument
+const expectInDocument = (element: HTMLElement) => {
+  // @ts-expect-error - jest-dom adds toBeInTheDocument but TypeScript doesn't know about it
+  return expect(element).toBeInTheDocument();
+};
+
 // Mock axios
-vi.mock('axios', () => ({
-  get: vi.fn(),
-  post: vi.fn(),
-  put: vi.fn(),
-  delete: vi.fn(),
+jest.mock('axios', () => ({
+  get: jest.fn(),
+  post: jest.fn(),
+  put: jest.fn(),
+  delete: jest.fn(),
   interceptors: {
-    request: { use: vi.fn(), eject: vi.fn() },
-    response: { use: vi.fn(), eject: vi.fn() }
+    request: { use: jest.fn(), eject: jest.fn() },
+    response: { use: jest.fn(), eject: jest.fn() }
   },
   defaults: {
     headers: {
@@ -23,8 +30,8 @@ vi.mock('axios', () => ({
 }));
 
 // Mock useAuth hook
-vi.mock('../../../hooks/useAuth', () => ({
-  useAuth: vi.fn().mockReturnValue({
+jest.mock('../../../hooks/useAuth', () => ({
+  useAuth: jest.fn().mockReturnValue({
     isAuthenticated: true,
     loading: false,
     user: { id: '1', username: 'adminuser', role: 'admin' }
@@ -33,7 +40,7 @@ vi.mock('../../../hooks/useAuth', () => ({
 
 describe('UserManagement Component', () => {
   const mockStore = configureStore([]);
-  let store;
+  let store:any;
   
   // Mock user data
   const mockUsers = [
@@ -44,7 +51,7 @@ describe('UserManagement Component', () => {
   ];
   
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     
     // Setup mock store
     store = mockStore({
@@ -77,23 +84,23 @@ describe('UserManagement Component', () => {
     );
     
     // Assert component renders correctly
-    expect(screen.getByText(/User Management/i)).toBeInTheDocument();
+    expectInDocument(screen.getByText(/User Management/i));
     
     // Wait for user data to load
     await waitFor(() => {
-      expect(screen.getByText('admin@example.com')).toBeInTheDocument();
-      expect(screen.getByText('supervisor@example.com')).toBeInTheDocument();
-      expect(screen.getByText('user1@example.com')).toBeInTheDocument();
-      expect(screen.getByText('user2@example.com')).toBeInTheDocument();
+      expectInDocument(screen.getByText('admin@example.com'));
+      expectInDocument(screen.getByText('supervisor@example.com'));
+      expectInDocument(screen.getByText('user1@example.com'));
+      expectInDocument(screen.getByText('user2@example.com'));
     });
     
     // Assert table headers are present
-    expect(screen.getByText(/Username/i)).toBeInTheDocument();
-    expect(screen.getByText(/Email/i)).toBeInTheDocument();
-    expect(screen.getByText(/Role/i)).toBeInTheDocument();
-    expect(screen.getByText(/Status/i)).toBeInTheDocument();
-    expect(screen.getByText(/Created/i)).toBeInTheDocument();
-    expect(screen.getByText(/Actions/i)).toBeInTheDocument();
+    expectInDocument(screen.getByText(/Username/i));
+    expectInDocument(screen.getByText(/Email/i));
+    expectInDocument(screen.getByText(/Role/i));
+    expectInDocument(screen.getByText(/Status/i));
+    expectInDocument(screen.getByText(/Created/i));
+    expectInDocument(screen.getByText(/Actions/i));
   });
 
   it('fetches users from API on mount', async () => {
@@ -113,7 +120,7 @@ describe('UserManagement Component', () => {
     // Wait for data to be shown
     await waitFor(() => {
       mockUsers.forEach(user => {
-        expect(screen.getByText(user.email)).toBeInTheDocument();
+        expectInDocument(screen.getByText(user.email));
       });
     });
   });
@@ -196,7 +203,7 @@ describe('UserManagement Component', () => {
     
     // Wait for users to load
     await waitFor(() => {
-      expect(screen.getByText('user1@example.com')).toBeInTheDocument();
+      expectInDocument(screen.getByText('user1@example.com'));
     });
     
     // Find and click role change for user1
@@ -237,7 +244,7 @@ describe('UserManagement Component', () => {
     
     // Wait for users to load
     await waitFor(() => {
-      expect(screen.getByText('user2@example.com')).toBeInTheDocument();
+      expectInDocument(screen.getByText('user2@example.com'));
     });
     
     // Find and click status toggle for user2 (currently inactive)
@@ -269,7 +276,7 @@ describe('UserManagement Component', () => {
     
     // Wait for users to load
     await waitFor(() => {
-      expect(screen.getByText('user1@example.com')).toBeInTheDocument();
+      expectInDocument(screen.getByText('user1@example.com'));
     });
     
     // Find and click delete button for user1
@@ -315,8 +322,8 @@ describe('UserManagement Component', () => {
     
     // Wait for first page to load
     await waitFor(() => {
-      expect(screen.getByText('admin@example.com')).toBeInTheDocument();
-      expect(screen.getByText('supervisor@example.com')).toBeInTheDocument();
+      expectInDocument(screen.getByText('admin@example.com'));
+      expectInDocument(screen.getByText('supervisor@example.com'));
     });
     
     // Click next page button
@@ -337,8 +344,8 @@ describe('UserManagement Component', () => {
     
     // Check second page content
     await waitFor(() => {
-      expect(screen.getByText('user1@example.com')).toBeInTheDocument();
-      expect(screen.getByText('user2@example.com')).toBeInTheDocument();
+      expectInDocument(screen.getByText('user1@example.com'));
+      expectInDocument(screen.getByText('user2@example.com'));
     });
   });
 
@@ -356,7 +363,7 @@ describe('UserManagement Component', () => {
     );
     
     // Assert loading state is shown
-    expect(screen.getByTestId('user-management-loading')).toBeInTheDocument();
+    expectInDocument(screen.getByTestId('user-management-loading'));
   });
 
   it('shows error message when API request fails', async () => {
@@ -376,7 +383,7 @@ describe('UserManagement Component', () => {
     
     // Assert error message is shown
     await waitFor(() => {
-      expect(screen.getByText(new RegExp(errorMessage, 'i'))).toBeInTheDocument();
+      expectInDocument(screen.getByText(new RegExp(errorMessage, 'i')));
     });
   });
 });

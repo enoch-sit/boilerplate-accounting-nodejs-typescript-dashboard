@@ -1,14 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import Login from '../../../components/auth/Login';
 
 // Mock the useAuth hook
-vi.mock('../../../hooks/useAuth', () => ({
+jest.mock('../../../hooks/useAuth', () => ({
   useAuth: () => ({
-    login: vi.fn().mockImplementation((credentials) => {
+    login: jest.fn().mockImplementation((credentials) => {
       if (credentials.username === 'testuser' && credentials.password === 'Password123!') {
         return Promise.resolve({ username: 'testuser' });
       } else {
@@ -16,17 +17,17 @@ vi.mock('../../../hooks/useAuth', () => ({
       }
     }),
     error: null,
-    clearError: vi.fn(),
+    clearError: jest.fn(),
     isAuthenticated: false
   })
 }));
 
 // Mock useNavigate
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+jest.mock('react-router-dom', () => {
+  const actual = jest.requireActual('react-router-dom');
   return {
     ...actual,
-    useNavigate: () => vi.fn()
+    useNavigate: () => jest.fn()
   };
 });
 
@@ -42,7 +43,7 @@ describe('Login Component', () => {
   });
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('renders login form correctly', () => {
@@ -54,8 +55,9 @@ describe('Login Component', () => {
       </Provider>
     );
 
-    expect(screen.getByText(/Sign In/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Username or Email/i)).toBeInTheDocument();
+    // Use getAllByText for "Sign In" since it appears multiple times
+    expect(screen.getAllByText(/Sign In/i)[0]).toBeInTheDocument();
+    expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
     expect(screen.getByText(/Remember me/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Sign In/i })).toBeInTheDocument();
@@ -77,7 +79,7 @@ describe('Login Component', () => {
 
     // Wait for validation errors
     await waitFor(() => {
-      expect(screen.getByText(/Username is required/i)).toBeInTheDocument();
+      expect(screen.getByText(/Email is required/i)).toBeInTheDocument();
       expect(screen.getByText(/Password is required/i)).toBeInTheDocument();
     });
   });
@@ -92,7 +94,7 @@ describe('Login Component', () => {
     );
 
     // Fill in valid credentials
-    fireEvent.change(screen.getByLabelText(/Username or Email/i), {
+    fireEvent.change(screen.getByLabelText(/Email Address/i), {
       target: { value: 'testuser' }
     });
     fireEvent.change(screen.getByLabelText(/Password/i), {
@@ -115,11 +117,11 @@ describe('Login Component', () => {
 
   it('handles failed login', async () => {
     // Override the mock to simulate a failed login
-    vi.mock('../../../hooks/useAuth', () => ({
+    jest.mock('../../../hooks/useAuth', () => ({
       useAuth: () => ({
-        login: vi.fn().mockRejectedValue(new Error('Invalid credentials')),
+        login: jest.fn().mockRejectedValue(new Error('Invalid credentials')),
         error: null,
-        clearError: vi.fn(),
+        clearError: jest.fn(),
         isAuthenticated: false
       })
     }));
@@ -133,7 +135,7 @@ describe('Login Component', () => {
     );
 
     // Fill in invalid credentials
-    fireEvent.change(screen.getByLabelText(/Username or Email/i), {
+    fireEvent.change(screen.getByLabelText(/Email Address/i), {
       target: { value: 'wronguser' }
     });
     fireEvent.change(screen.getByLabelText(/Password/i), {

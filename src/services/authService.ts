@@ -32,10 +32,40 @@ class AuthService {
     }
   }
 
+  // Logout from all devices
+  async logoutFromAllDevices() {
+    try {
+      const response = await api.post('/auth/logout-all');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Resend verification code
+  async resendVerificationCode(email: string) {
+    try {
+      const response = await api.post('/auth/resend-verification', { email });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Update user profile
+  async updateProfile(userData: Partial<User>) {
+    try {
+      const response = await api.put('/profile', userData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Get current user
   async getCurrentUser(): Promise<User> {
     try {
-      const response = await api.get<User>('/protected/profile');
+      const response = await api.get<User>('/profile');
       return response.data;
     } catch (error) {
       throw error;
@@ -85,7 +115,7 @@ class AuthService {
   // Change password
   async changePassword(currentPassword: string, newPassword: string) {
     try {
-      const response = await api.post('/protected/change-password', { currentPassword, newPassword });
+      const response = await api.post('/change-password', { currentPassword, newPassword });
       return response.data;
     } catch (error) {
       throw error;

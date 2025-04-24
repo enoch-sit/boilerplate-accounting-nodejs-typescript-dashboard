@@ -28,6 +28,13 @@ export interface RegisterCredentials {
   confirmPassword: string;
 }
 
+export interface UserRegistrationData {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword?: string;
+}
+
 export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -43,4 +50,17 @@ export interface AuthResponse {
 
 export interface RefreshTokenResponse {
   accessToken: string;
+}
+
+export interface UserFormData {
+  username: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+}
+
+export interface BatchUserData {
+  username: string;
+  email: string;
+  role?: UserRole;
 }
