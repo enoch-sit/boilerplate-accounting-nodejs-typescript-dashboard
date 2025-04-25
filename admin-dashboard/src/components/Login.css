@@ -1,0 +1,25 @@
+/* Custom button styling to match Semantic UI's primary button */
+.custom-button {
+  display: inline-block;
+  padding: 0.78571429em 1.5em;
+  font-weight: 700;
+  line-height: 1em;
+  border-radius: 0.28571429rem;
+  background-color: #2185d0;
+  color: #fff;
+  text-shadow: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s ease;
+}
+
+.custom-button:hover {
+  background-color: #1678c2;
+}
+
+.custom-button:disabled {
+  opacity: 0.45;
+  background-color: #2185d0;
+  cursor: default;
+}

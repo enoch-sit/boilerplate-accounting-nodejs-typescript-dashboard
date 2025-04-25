@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Form, Button, Message, Dropdown, Checkbox } from 'semantic-ui-react'
+import { Form, Message, Checkbox } from 'semantic-ui-react'
 import { ApiResponse, User } from '../types'
+import './CustomButtons.css'
 
 const AddUserForm = () => {
   const [user, setUser] = useState<Partial<User>>({
@@ -20,13 +21,9 @@ const AddUserForm = () => {
     { key: 'admin', text: 'Admin', value: 'admin' }
   ]
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setUser({ ...user, [name]: value })
-  }
-
-  const handleRoleChange = (_: React.SyntheticEvent, data: any) => {
-    setUser({ ...user, role: data.value })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,12 +125,18 @@ const AddUserForm = () => {
         
         <Form.Field required>
           <label>Role</label>
-          <Dropdown
-            selection
-            options={roleOptions}
+          <select
+            name="role"
             value={user.role}
-            onChange={handleRoleChange}
-          />
+            onChange={handleChange}
+            className="custom-dropdown"
+          >
+            {roleOptions.map(option => (
+              <option key={option.key} value={option.value}>
+                {option.text}
+              </option>
+            ))}
+          </select>
         </Form.Field>
         
         <Form.Field>
@@ -144,9 +147,9 @@ const AddUserForm = () => {
           />
         </Form.Field>
         
-        <Button type="submit" primary disabled={loading}>
+        <button type="submit" className="custom-button primary" disabled={loading}>
           Create User
-        </Button>
+        </button>
       </Form>
     </div>
   )

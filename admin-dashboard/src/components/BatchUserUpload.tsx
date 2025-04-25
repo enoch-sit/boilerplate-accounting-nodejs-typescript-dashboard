@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Form, Button, Message, Table, Checkbox, Segment } from 'semantic-ui-react'
+import { Form, Message, Table, Checkbox, Segment } from 'semantic-ui-react'
 import { BatchUserRequest, BatchCreationResponse, BatchUserResponse } from '../types'
+import './CustomButtons.css'
 
 const BatchUserUpload = () => {
   const [users, setUsers] = useState<BatchUserRequest[]>([])
@@ -140,14 +141,23 @@ const BatchUserUpload = () => {
           />
         </Form.Field>
         
-        <Button.Group>
-          <Button type="submit" primary disabled={loading || users.length === 0}>
+        <div className="button-group">
+          <button 
+            type="submit" 
+            className="custom-button primary" 
+            disabled={loading || users.length === 0}
+          >
             Upload Users
-          </Button>
-          <Button type="button" onClick={handleClearForm} disabled={loading}>
+          </button>
+          <button 
+            type="button" 
+            className="custom-button" 
+            onClick={handleClearForm} 
+            disabled={loading}
+          >
             Clear
-          </Button>
-        </Button.Group>
+          </button>
+        </div>
       </Form>
       
       {users.length > 0 && (

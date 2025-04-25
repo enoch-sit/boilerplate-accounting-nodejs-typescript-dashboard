@@ -1,0 +1,21 @@
+﻿# Development Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files and install dependencies
+COPY package.json package-lock.json /app/
+RUN npm ci
+
+# Copy the rest of the application
+COPY . .
+
+# Set default environment variable for BASE_URL
+# This can be overridden at runtime with docker run -e
+ENV VITE_API_BASE_URL=http://localhost:3000
+
+# Expose the development server port
+EXPOSE 5173
+
+# Start the development server with hot-reloading
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

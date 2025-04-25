@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Table, Button, Icon, Loader, Message } from 'semantic-ui-react'
+import { Icon, Message, Loader } from 'semantic-ui-react'
 import { User } from '../types'
+import './CustomButtons.css'
 
 const UserList = () => {
   const [users, setUsers] = useState<User[]>([])
@@ -92,50 +93,58 @@ const UserList = () => {
   }
 
   if (loading) {
-    return <Loader active inline="centered">Loading Users...</Loader>
+    return (
+      <div className="custom-loader-container">
+        <div className="custom-loader"></div>
+        <p>Loading Users...</p>
+      </div>
+    )
   }
 
   if (error) {
-    return <Message negative>
-      <Message.Header>Error</Message.Header>
-      <p>{error}</p>
-      <Button onClick={fetchUsers}>Try Again</Button>
-    </Message>
+    return (
+      <div className="custom-message negative">
+        <div className="custom-message-header">Error</div>
+        <p>{error}</p>
+        <button className="custom-button primary" onClick={fetchUsers}>Try Again</button>
+      </div>
+    )
   }
 
   return (
     <div>
       <h2>User Management</h2>
-      <Button primary icon labelPosition="left" onClick={fetchUsers}>
-        <Icon name="refresh" />
+      <button className="custom-button primary" onClick={fetchUsers}>
+        <Icon name="refresh" className="button-icon" />
         Refresh
-      </Button>
+      </button>
 
       {users.length === 0 ? (
-        <Message info>
-          <Message.Header>No Users Found</Message.Header>
+        <div className="custom-message info">
+          <div className="custom-message-header">No Users Found</div>
           <p>There are no users to display.</p>
-        </Message>
+        </div>
       ) : (
-        <Table celled striped>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell>Username</Table.HeaderCell>
-              <Table.HeaderCell>Email</Table.HeaderCell>
-              <Table.HeaderCell>Role</Table.HeaderCell>
-              <Table.HeaderCell>Verified</Table.HeaderCell>
-              <Table.HeaderCell>Created At</Table.HeaderCell>
-              <Table.HeaderCell>Actions</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
+        <table className="custom-table celled striped">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Verified</th>
+              <th>Created At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
 
-          <Table.Body>
+          <tbody>
             {users.map(user => (
-              <Table.Row key={user._id}>
-                <Table.Cell>{user.username}</Table.Cell>
-                <Table.Cell>{user.email}</Table.Cell>
-                <Table.Cell>
+              <tr key={user._id}>
+                <td>{user.username}</td>
+                <td>{user.email}</td>
+                <td>
                   <select 
+                    className="custom-select"
                     value={user.role || 'enduser'} 
                     onChange={(e) => user._id && handleUpdateRole(user._id, e.target.value)}
                   >
@@ -143,31 +152,29 @@ const UserList = () => {
                     <option value="supervisor">Supervisor</option>
                     <option value="admin">Admin</option>
                   </select>
-                </Table.Cell>
-                <Table.Cell>
+                </td>
+                <td>
                   {user.isVerified ? (
-                    <Icon name="check" color="green" />
+                    <Icon name="check" className="icon-green" />
                   ) : (
-                    <Icon name="close" color="red" />
+                    <Icon name="close" className="icon-red" />
                   )}
-                </Table.Cell>
-                <Table.Cell>
+                </td>
+                <td>
                   {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-                </Table.Cell>
-                <Table.Cell>
-                  <Button 
-                    icon 
-                    color="red" 
-                    size="tiny"
+                </td>
+                <td>
+                  <button 
+                    className="custom-button red small icon-only-button"
                     onClick={() => user._id && handleDeleteUser(user._id)}
                   >
                     <Icon name="trash" />
-                  </Button>
-                </Table.Cell>
-              </Table.Row>
+                  </button>
+                </td>
+              </tr>
             ))}
-          </Table.Body>
-        </Table>
+          </tbody>
+        </table>
       )}
     </div>
   )

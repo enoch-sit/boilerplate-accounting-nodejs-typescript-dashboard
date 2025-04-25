@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  admin-dashboard-prod:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+      args:
+        - VITE_API_BASE_URL=https://your-production-api.com
+    container_name: admin-dashboard-prod
+    ports:
+      - "80:80"
+    restart: unless-stopped
